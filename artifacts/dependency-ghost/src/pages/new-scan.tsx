@@ -43,8 +43,8 @@ export default function NewScan() {
         toast({ title: "Scan initiated", description: `Scan #${scan.id} created successfully.` });
         setLocation(`/scan/${scan.id}`);
       },
-      onError: (err) => {
-        toast({ title: "Error", description: err.error?.error || "Failed to create scan", variant: "destructive" });
+      onError: () => {
+        toast({ title: "Error", description: "Failed to create scan", variant: "destructive" });
       }
     });
   }
@@ -59,8 +59,8 @@ export default function NewScan() {
         toast({ title: "Sandbox Created", description: `Created ${info.repoFullName}` });
         form.setValue("sandboxRepo", info.repoFullName);
       },
-      onError: (err) => {
-        toast({ title: "Setup Failed", description: err.error?.error || "Unknown error", variant: "destructive" });
+      onError: () => {
+        toast({ title: "Setup Failed", description: "Unknown error", variant: "destructive" });
       }
     });
   };

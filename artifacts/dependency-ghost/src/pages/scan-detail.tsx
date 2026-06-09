@@ -1,190 +1,262 @@
 import { useEffect, useRef } from "react";
-import { useParams } from "wouter";
-import { useGetScan, getGetScanQueryKey, useGetScanLogs, getGetScanLogsQueryKey, useGetScanMismatches, getGetScanMismatchesQueryKey, useRunScan } from "@workspace/api-client-react";
+import { useParams, Link } from "wouter";
+import {
+  useGetScan, getGetScanQueryKey,
+  useGetScanLogs, getGetScanLogsQueryKey,
+  useGetScanMismatches, getGetScanMismatchesQueryKey,
+  useRunScan,
+} from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Terminal, Activity, AlertCircle, FileCode, CheckCircle2 } from "lucide-react";
+import { Terminal, Activity, AlertTriangle, ExternalLink, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { MismatchCard } from "@/components/diff-viewer";
 
-const AGENT_COLORS = {
-  THINK: "text-blue-400",
+const AGENT_COLORS: Record<string, string> = {
+  THINK:   "text-blue-400",
   EXECUTE: "text-amber-400",
   CORRECT: "text-emerald-400",
-  SYSTEM: "text-muted-foreground"
+  SYSTEM:  "text-zinc-500",
 };
 
-const SEVERITY_COLORS = {
-  critical: "bg-red-500/10 text-red-500 border-red-500/20",
-  high: "bg-orange-500/10 text-orange-500 border-orange-500/20",
-  medium: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
-  low: "bg-gray-500/10 text-gray-400 border-gray-500/20",
+const LOG_LEVEL_COLORS: Record<string, string> = {
+  info:    "text-zinc-300",
+  warning: "text-yellow-400",
+  error:   "text-red-400",
+  success: "text-emerald-400",
 };
+
+const STATUS_STYLES: Record<string, string> = {
+  pending:    "border-zinc-500   text-zinc-400",
+  thinking:   "border-blue-500   text-blue-400",
+  executing:  "border-amber-500  text-amber-400",
+  correcting: "border-purple-500 text-purple-400",
+  completed:  "border-emerald-500 text-emerald-400",
+  failed:     "border-red-500    text-red-400",
+};
+
+const SEVERITY_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
 
 export default function ScanDetail() {
   const { id } = useParams();
   const scanId = parseInt(id || "0", 10);
-  
+
+  const isTerminal = (status?: string) =>
+    status === "completed" || status === "failed";
+
   const { data: scan } = useGetScan(scanId, {
     query: {
       enabled: !!scanId,
       queryKey: getGetScanQueryKey(scanId),
-      refetchInterval: (query) => {
-        const status = query.state?.data?.status;
-        return (status === 'completed' || status === 'failed') ? false : 3000;
-      }
-    }
+      refetchInterval: (q) => (isTerminal(q.state?.data?.status) ? false : 3000),
+    },
   });
 
   const { data: logs } = useGetScanLogs(scanId, {
     query: {
       enabled: !!scanId,
       queryKey: getGetScanLogsQueryKey(scanId),
-      refetchInterval: (query) => {
-        return (scan?.status === 'completed' || scan?.status === 'failed') ? false : 3000;
-      }
-    }
+      refetchInterval: () => (isTerminal(scan?.status) ? false : 2500),
+    },
   });
 
   const { data: mismatches } = useGetScanMismatches(scanId, {
     query: {
       enabled: !!scanId,
       queryKey: getGetScanMismatchesQueryKey(scanId),
-      refetchInterval: (query) => {
-        return (scan?.status === 'completed' || scan?.status === 'failed') ? false : 5000;
-      }
-    }
+      refetchInterval: () => (isTerminal(scan?.status) ? false : 4000),
+    },
   });
 
   const runScan = useRunScan();
   const hasRun = useRef(false);
 
   useEffect(() => {
-    if (scan && scan.status === 'pending' && !hasRun.current) {
+    if (scan && scan.status === "pending" && !hasRun.current) {
       hasRun.current = true;
       runScan.mutate({ id: scanId });
     }
   }, [scan, scanId, runScan]);
 
-  if (!scan) return <div className="animate-pulse font-mono text-primary">LOADING_SCAN_DATA...</div>;
+  // Auto-scroll log pane
+  const logEndRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [logs?.length]);
 
-  const isRunning = !['completed', 'failed'].includes(scan.status);
+  if (!scan) {
+    return (
+      <div className="flex items-center gap-3 font-mono text-primary animate-pulse py-8">
+        <Terminal className="w-4 h-4" />
+        LOADING_SCAN_DATA...
+      </div>
+    );
+  }
+
+  const isRunning = !isTerminal(scan.status);
+  const statusStyle = STATUS_STYLES[scan.status] ?? "border-zinc-500 text-zinc-400";
+
+  const sortedMismatches = [...(mismatches ?? [])].sort(
+    (a, b) => (SEVERITY_ORDER[a.severity] ?? 9) - (SEVERITY_ORDER[b.severity] ?? 9)
+  );
+
+  const criticalCount = sortedMismatches.filter((m) => m.severity === "critical").length;
+  const highCount     = sortedMismatches.filter((m) => m.severity === "high").length;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-3">
-            SCAN #{scan.id}
-            <Badge variant="outline" className={`
-              uppercase font-mono ml-2
-              ${scan.status === 'completed' ? 'border-emerald-500 text-emerald-500' : ''}
-              ${scan.status === 'failed' ? 'border-destructive text-destructive' : ''}
-              ${isRunning ? 'border-primary text-primary animate-pulse' : ''}
-            `}>
+    <div className="space-y-5 animate-in fade-in duration-300" data-testid="scan-detail-page">
+
+      {/* ── Top bar ── */}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-zinc-500 text-xs font-mono mb-2">
+            <Link href="/">
+              <button className="flex items-center gap-1 hover:text-primary transition-colors" data-testid="link-back-dashboard">
+                <ArrowLeft className="w-3 h-3" />
+                WAR_ROOM
+              </button>
+            </Link>
+            <span>/</span>
+            <span className="text-zinc-400">SCAN #{scan.id}</span>
+          </div>
+          <h1 className="text-xl font-bold font-mono flex items-center gap-3 flex-wrap">
+            <span data-testid="text-scan-title">SCAN #{scan.id}</span>
+            <Badge
+              variant="outline"
+              className={`uppercase font-mono text-[11px] ${statusStyle} ${isRunning ? "animate-pulse" : ""}`}
+              data-testid="badge-scan-status"
+            >
               {scan.status}
             </Badge>
           </h1>
-          <p className="text-muted-foreground mt-1 text-sm font-mono">{scan.repoUrl}</p>
+          <p className="text-zinc-500 text-xs font-mono truncate max-w-xl" data-testid="text-scan-repo">
+            {scan.repoUrl}
+          </p>
         </div>
+
         {scan.prUrl && (
-          <Button variant="outline" className="border-primary text-primary hover:bg-primary/10" asChild>
-            <a href={scan.prUrl} target="_blank" rel="noreferrer">
+          <a
+            href={scan.prUrl}
+            target="_blank"
+            rel="noreferrer"
+            data-testid="link-pull-request"
+          >
+            <Button
+              variant="outline"
+              className="border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10 font-mono text-xs gap-2"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
               VIEW PULL REQUEST
-            </a>
-          </Button>
+            </Button>
+          </a>
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 border-border bg-[#0a0a0a] shadow-xl overflow-hidden flex flex-col h-[600px]">
-          <CardHeader className="bg-muted/50 border-b border-border py-3">
-            <CardTitle className="text-sm font-mono flex items-center gap-2 text-muted-foreground">
-              <Terminal className="w-4 h-4" />
+      {/* ── Main layout ── */}
+      <div className="grid grid-cols-1 xl:grid-cols-5 gap-5">
+
+        {/* Log pane — 2 cols */}
+        <Card className="xl:col-span-2 border-zinc-800 bg-zinc-950 flex flex-col h-[580px]">
+          <CardHeader className="py-2.5 px-4 border-b border-zinc-800 bg-zinc-900/60 shrink-0">
+            <CardTitle className="text-[11px] font-mono flex items-center gap-2 text-zinc-500 uppercase tracking-widest">
+              <Terminal className="w-3.5 h-3.5" />
               LIVE_LOG_STREAM
-              {isRunning && <Activity className="w-3 h-3 text-primary animate-pulse ml-auto" />}
+              {isRunning && (
+                <Activity className="w-3 h-3 text-primary animate-pulse ml-auto" />
+              )}
+              {!isRunning && (
+                <span className="ml-auto text-zinc-600 text-[9px]">
+                  {logs?.length ?? 0} entries
+                </span>
+              )}
             </CardTitle>
           </CardHeader>
-          <ScrollArea className="flex-1 p-4">
-            <div className="space-y-2 font-mono text-xs">
-              {logs?.map((log) => (
-                <div key={log.id} className="flex gap-3">
-                  <span className="text-muted-foreground opacity-50 shrink-0">
-                    {new Date(log.createdAt).toLocaleTimeString([], { hour12: false })}
+          <div className="flex-1 overflow-y-auto p-3">
+            <div className="space-y-1 font-mono text-[11px]" data-testid="log-stream">
+              {logs?.map((log, i) => (
+                <div
+                  key={log.id}
+                  className="flex gap-2 items-start animate-in fade-in slide-in-from-bottom-1"
+                  style={{ animationDelay: `${Math.min(i * 20, 300)}ms` }}
+                  data-testid={`log-entry-${log.id}`}
+                >
+                  <span className="text-zinc-700 shrink-0 tabular-nums">
+                    {new Date(log.createdAt).toLocaleTimeString([], { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                   </span>
-                  <span className={`w-16 shrink-0 font-bold ${AGENT_COLORS[log.agent] || "text-foreground"}`}>
+                  <span
+                    className={`shrink-0 font-bold w-[60px] ${AGENT_COLORS[log.agent] ?? "text-zinc-400"}`}
+                  >
                     [{log.agent}]
                   </span>
-                  <span className={`${log.level === 'error' ? 'text-destructive' : 'text-foreground/90'}`}>
+                  <span className={LOG_LEVEL_COLORS[log.level] ?? "text-zinc-300"}>
                     {log.message}
                   </span>
                 </div>
               ))}
-              {logs?.length === 0 && (
-                <div className="text-muted-foreground opacity-50 italic">Awaiting agent initialization...</div>
+              {(!logs || logs.length === 0) && (
+                <div className="text-zinc-700 italic text-center py-12">
+                  Awaiting agent initialization...
+                </div>
               )}
+              <div ref={logEndRef} />
             </div>
-          </ScrollArea>
+          </div>
         </Card>
 
-        <div className="space-y-6">
-          <Card className="border-border bg-card/50">
-            <CardHeader className="py-3 border-b border-border">
-              <CardTitle className="text-sm font-mono flex items-center gap-2">
-                <AlertCircle className="w-4 h-4" />
-                MISMATCHES_DETECTED ({mismatches?.length || 0})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <ScrollArea className="h-[540px]">
-                <div className="p-4 space-y-4">
-                  {mismatches?.map((mismatch) => (
-                    <Card key={mismatch.id} className="border-border bg-background shadow-none rounded-sm">
-                      <div className="p-3 space-y-3">
-                        <div className="flex items-start justify-between">
-                          <div className="font-mono text-sm font-bold text-primary">
-                            {mismatch.dependency}
-                          </div>
-                          <Badge variant="outline" className={`text-[10px] uppercase h-5 ${SEVERITY_COLORS[mismatch.severity]}`}>
-                            {mismatch.severity}
-                          </Badge>
-                        </div>
-                        <div className="text-xs font-mono text-muted-foreground">
-                          fn: {mismatch.functionName}
-                        </div>
-                        <div className="space-y-1 mt-2">
-                          <div className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Actual vs Expected</div>
-                          <div className="text-xs font-mono bg-red-950/20 text-red-400 p-1.5 rounded-sm line-clamp-1 border border-red-900/30">
-                            - {mismatch.expected}
-                          </div>
-                          <div className="text-xs font-mono bg-emerald-950/20 text-emerald-400 p-1.5 rounded-sm line-clamp-1 border border-emerald-900/30">
-                            + {mismatch.actual}
-                          </div>
-                        </div>
-                        {mismatch.patch && (
-                          <div className="pt-2 mt-2 border-t border-border/50">
-                            <div className="flex items-center gap-1.5 text-[10px] uppercase text-emerald-500 font-bold mb-1.5">
-                              <FileCode className="w-3 h-3" />
-                              Patch Generated
-                              {mismatch.patchStatus === 'verified' && <CheckCircle2 className="w-3 h-3 ml-auto text-emerald-500" />}
-                            </div>
-                            <pre className="text-[10px] font-mono bg-black p-2 rounded border border-border text-gray-300 overflow-x-auto">
-                              {mismatch.patch}
-                            </pre>
-                          </div>
-                        )}
-                      </div>
-                    </Card>
-                  ))}
-                  {mismatches?.length === 0 && (
-                    <div className="text-xs font-mono text-muted-foreground text-center py-8">
-                      No behavior drift detected yet.
-                    </div>
-                  )}
+        {/* Diff / mismatches pane — 3 cols */}
+        <div className="xl:col-span-3 flex flex-col gap-4">
+
+          {/* Summary bar */}
+          <div className="flex items-center gap-3 font-mono text-xs flex-wrap" data-testid="mismatches-summary">
+            <span className="flex items-center gap-1.5 text-zinc-500">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              MISMATCHES
+            </span>
+            <span className="text-zinc-200 font-bold" data-testid="text-mismatch-count">
+              {sortedMismatches.length}
+            </span>
+            {criticalCount > 0 && (
+              <span className="text-red-400 text-[10px] border border-red-500/30 px-1.5 py-0.5 rounded">
+                {criticalCount} CRITICAL
+              </span>
+            )}
+            {highCount > 0 && (
+              <span className="text-orange-400 text-[10px] border border-orange-500/30 px-1.5 py-0.5 rounded">
+                {highCount} HIGH
+              </span>
+            )}
+            {sortedMismatches.length > 0 && (
+              <span className="ml-auto text-zinc-600 text-[10px]">
+                click a row to expand diff + patch
+              </span>
+            )}
+          </div>
+
+          {/* Scrollable mismatch list */}
+          <div className="overflow-y-auto flex-1 space-y-2 pr-1" style={{ maxHeight: 520 }} data-testid="mismatches-list">
+            {sortedMismatches.map((m, i) => (
+              <MismatchCard key={m.id} mismatch={m} index={i} />
+            ))}
+
+            {sortedMismatches.length === 0 && !isRunning && (
+              <div className="flex flex-col items-center justify-center py-16 text-center space-y-3">
+                <div className="w-10 h-10 rounded-full border border-emerald-500/30 flex items-center justify-center">
+                  <span className="text-emerald-400 font-mono text-lg">✓</span>
                 </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
+                <p className="font-mono text-xs text-zinc-500">NO_BEHAVIORAL_DRIFT_DETECTED</p>
+                <p className="text-[10px] text-zinc-700 max-w-xs">
+                  All dependency functions match their expected contracts.
+                </p>
+              </div>
+            )}
+
+            {sortedMismatches.length === 0 && isRunning && (
+              <div className="text-center py-16 font-mono text-xs text-zinc-600 animate-pulse">
+                Scanning for behavioral drift...
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -1,0 +1,3 @@
+- [Express route ordering](express-route-order.md) — literal static segments like /scans/stats must be registered before parameterized routes like /scans/:id or Express captures the literal as a param.
+- [CSS Google Fonts import order](css-import-order.md) — @import url(...) must be the very first line in index.css, before @import "tailwindcss" — PostCSS fails silently otherwise.
+- [Stale lib declarations](stale-lib-declarations.md) — after adding exports to lib/db/src/schema/, always run pnpm run typecheck:libs before artifact typechecks or @workspace/db exports appear missing.

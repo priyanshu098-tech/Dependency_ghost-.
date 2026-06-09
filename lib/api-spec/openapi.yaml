@@ -1,22 +1,24 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Dependency Ghost API - detect silent behavior changes in dependency upgrades
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: scans
+    description: Dependency scan operations
+  - name: sandbox
+    description: GitHub sandbox setup
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +26,188 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /scans:
+    get:
+      operationId: listScans
+      tags: [scans]
+      summary: List all scans
+      responses:
+        "200":
+          description: List of scans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Scan"
+    post:
+      operationId: createScan
+      tags: [scans]
+      summary: Start a new dependency scan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScanInput"
+      responses:
+        "201":
+          description: Scan created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Scan"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /scans/{id}:
+    get:
+      operationId: getScan
+      tags: [scans]
+      summary: Get a scan by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Scan details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Scan"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /scans/{id}/run:
+    post:
+      operationId: runScan
+      tags: [scans]
+      summary: Execute the 3-agent pipeline for a scan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Pipeline started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Scan"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /scans/{id}/logs:
+    get:
+      operationId: getScanLogs
+      tags: [scans]
+      summary: Get logs for a scan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Scan logs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ScanLog"
+
+  /scans/{id}/mismatches:
+    get:
+      operationId: getScanMismatches
+      tags: [scans]
+      summary: Get behavior mismatches found for a scan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Mismatches
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Mismatch"
+
+  /scans/stats:
+    get:
+      operationId: getScanStats
+      tags: [scans]
+      summary: Get scan statistics
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScanStats"
+
+  /sandbox/setup:
+    post:
+      operationId: setupSandbox
+      tags: [sandbox]
+      summary: Create GitHub sandbox repository for workflow execution
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SandboxSetupInput"
+      responses:
+        "200":
+          description: Sandbox info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SandboxInfo"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /sandbox/workflow-yaml:
+    get:
+      operationId: getWorkflowYaml
+      tags: [sandbox]
+      summary: Get the GitHub Actions workflow YAML to copy into sandbox repo
+      responses:
+        "200":
+          description: Workflow YAML
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowYaml"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +218,171 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    ScanInput:
+      type: object
+      required:
+        - repoUrl
+      properties:
+        repoUrl:
+          type: string
+          description: GitHub repository URL to scan
+        sandboxRepo:
+          type: ["string", "null"]
+          description: GitHub sandbox repo (owner/repo) to run workflows in
+
+    Scan:
+      type: object
+      required:
+        - id
+        - repoUrl
+        - status
+        - createdAt
+      properties:
+        id:
+          type: integer
+        repoUrl:
+          type: string
+        sandboxRepo:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [pending, thinking, executing, correcting, completed, failed]
+        contractMap:
+          type: ["string", "null"]
+          description: JSON contract map from Agent 1 (THINK)
+        workflowRunId:
+          type: ["string", "null"]
+          description: GitHub Actions run ID from Agent 2 (EXECUTE)
+        prUrl:
+          type: ["string", "null"]
+          description: Pull Request URL from Agent 3 (SELF-CORRECT)
+        errorMessage:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: ["string", "null"]
+
+    ScanLog:
+      type: object
+      required:
+        - id
+        - scanId
+        - agent
+        - level
+        - message
+        - createdAt
+      properties:
+        id:
+          type: integer
+        scanId:
+          type: integer
+        agent:
+          type: string
+          enum: [THINK, EXECUTE, CORRECT, SYSTEM]
+        level:
+          type: string
+          enum: [info, warning, error, success]
+        message:
+          type: string
+        createdAt:
+          type: string
+
+    Mismatch:
+      type: object
+      required:
+        - id
+        - scanId
+        - dependency
+        - functionName
+        - expected
+        - actual
+        - severity
+        - createdAt
+      properties:
+        id:
+          type: integer
+        scanId:
+          type: integer
+        dependency:
+          type: string
+        functionName:
+          type: string
+        expected:
+          type: string
+        actual:
+          type: string
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+        patch:
+          type: ["string", "null"]
+          description: Generated compatibility wrapper code
+        patchStatus:
+          type: ["string", "null"]
+          enum: [pending, verified, failed, "null"]
+        createdAt:
+          type: string
+
+    ScanStats:
+      type: object
+      required:
+        - totalScans
+        - completedScans
+        - totalMismatches
+        - fixedMismatches
+        - recentScans
+      properties:
+        totalScans:
+          type: integer
+        completedScans:
+          type: integer
+        totalMismatches:
+          type: integer
+        fixedMismatches:
+          type: integer
+        recentScans:
+          type: array
+          items:
+            $ref: "#/components/schemas/Scan"
+
+    SandboxSetupInput:
+      type: object
+      required:
+        - repoName
+      properties:
+        repoName:
+          type: string
+          description: Name for the sandbox repository
+
+    SandboxInfo:
+      type: object
+      required:
+        - repoUrl
+        - repoFullName
+        - workflowPath
+      properties:
+        repoUrl:
+          type: string
+        repoFullName:
+          type: string
+        workflowPath:
+          type: string
+        message:
+          type: ["string", "null"]
+
+    WorkflowYaml:
+      type: object
+      required:
+        - yaml
+      properties:
+        yaml:
+          type: string

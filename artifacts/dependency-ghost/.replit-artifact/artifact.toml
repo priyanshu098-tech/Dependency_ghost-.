@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Dependency Ghost"
+version = "1.0.0"
+id = "artifacts/dependency-ghost"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18258
+
+[services.development]
+run = "pnpm --filter @workspace/dependency-ghost run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/dependency-ghost", "run", "build" ]
+publicDir = "artifacts/dependency-ghost/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18258"
+BASE_PATH = "/"

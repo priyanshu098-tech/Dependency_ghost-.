@@ -20,6 +20,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  DeleteWebhookConfig200,
   ErrorResponse,
   HealthStatus,
   Mismatch,
@@ -29,6 +30,8 @@ import type {
   ScanInput,
   ScanLog,
   ScanStats,
+  WebhookConfig,
+  WebhookTestResult,
   WorkflowYaml
 } from './api.schemas';
 
@@ -794,4 +797,293 @@ export function useGetWorkflowYaml<TData = Awaited<ReturnType<typeof getWorkflow
 
 
 
+
+export const getGetWebhookConfigUrl = () => {
+
+
+
+
+  return `/api/settings/webhooks`
+}
+
+/**
+ * @summary Get the current webhook notification configuration
+ */
+export const getWebhookConfig = async ( options?: RequestInit): Promise<WebhookConfig> => {
+
+  return customFetch<WebhookConfig>(getGetWebhookConfigUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWebhookConfigQueryKey = () => {
+    return [
+    `/api/settings/webhooks`
+    ] as const;
+    }
+
+
+export const getGetWebhookConfigQueryOptions = <TData = Awaited<ReturnType<typeof getWebhookConfig>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWebhookConfig>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWebhookConfigQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWebhookConfig>>> = ({ signal }) => getWebhookConfig({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWebhookConfig>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWebhookConfigQueryResult = NonNullable<Awaited<ReturnType<typeof getWebhookConfig>>>
+export type GetWebhookConfigQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get the current webhook notification configuration
+ */
+
+export function useGetWebhookConfig<TData = Awaited<ReturnType<typeof getWebhookConfig>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWebhookConfig>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWebhookConfigQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getSaveWebhookConfigUrl = () => {
+
+
+
+
+  return `/api/settings/webhooks`
+}
+
+/**
+ * @summary Save webhook notification configuration
+ */
+export const saveWebhookConfig = async (webhookConfig: WebhookConfig, options?: RequestInit): Promise<WebhookConfig> => {
+
+  return customFetch<WebhookConfig>(getSaveWebhookConfigUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      webhookConfig,)
+  }
+);}
+
+
+
+
+export const getSaveWebhookConfigMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveWebhookConfig>>, TError,{data: BodyType<WebhookConfig>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof saveWebhookConfig>>, TError,{data: BodyType<WebhookConfig>}, TContext> => {
+
+const mutationKey = ['saveWebhookConfig'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof saveWebhookConfig>>, {data: BodyType<WebhookConfig>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  saveWebhookConfig(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SaveWebhookConfigMutationResult = NonNullable<Awaited<ReturnType<typeof saveWebhookConfig>>>
+    export type SaveWebhookConfigMutationBody = BodyType<WebhookConfig>
+    export type SaveWebhookConfigMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Save webhook notification configuration
+ */
+export const useSaveWebhookConfig = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveWebhookConfig>>, TError,{data: BodyType<WebhookConfig>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof saveWebhookConfig>>,
+        TError,
+        {data: BodyType<WebhookConfig>},
+        TContext
+      > => {
+      return useMutation(getSaveWebhookConfigMutationOptions(options));
+    }
+
+export const getDeleteWebhookConfigUrl = () => {
+
+
+
+
+  return `/api/settings/webhooks`
+}
+
+/**
+ * @summary Remove webhook configuration
+ */
+export const deleteWebhookConfig = async ( options?: RequestInit): Promise<DeleteWebhookConfig200> => {
+
+  return customFetch<DeleteWebhookConfig200>(getDeleteWebhookConfigUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteWebhookConfigMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteWebhookConfig>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteWebhookConfig>>, TError,void, TContext> => {
+
+const mutationKey = ['deleteWebhookConfig'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteWebhookConfig>>, void> = () => {
+
+
+          return  deleteWebhookConfig(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteWebhookConfigMutationResult = NonNullable<Awaited<ReturnType<typeof deleteWebhookConfig>>>
+
+    export type DeleteWebhookConfigMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Remove webhook configuration
+ */
+export const useDeleteWebhookConfig = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteWebhookConfig>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteWebhookConfig>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getDeleteWebhookConfigMutationOptions(options));
+    }
+
+export const getTestWebhookUrl = () => {
+
+
+
+
+  return `/api/settings/webhooks/test`
+}
+
+/**
+ * @summary Send a test notification to the configured webhook
+ */
+export const testWebhook = async (webhookConfig: WebhookConfig, options?: RequestInit): Promise<WebhookTestResult> => {
+
+  return customFetch<WebhookTestResult>(getTestWebhookUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      webhookConfig,)
+  }
+);}
+
+
+
+
+export const getTestWebhookMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testWebhook>>, TError,{data: BodyType<WebhookConfig>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof testWebhook>>, TError,{data: BodyType<WebhookConfig>}, TContext> => {
+
+const mutationKey = ['testWebhook'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof testWebhook>>, {data: BodyType<WebhookConfig>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  testWebhook(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TestWebhookMutationResult = NonNullable<Awaited<ReturnType<typeof testWebhook>>>
+    export type TestWebhookMutationBody = BodyType<WebhookConfig>
+    export type TestWebhookMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Send a test notification to the configured webhook
+ */
+export const useTestWebhook = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testWebhook>>, TError,{data: BodyType<WebhookConfig>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof testWebhook>>,
+        TError,
+        {data: BodyType<WebhookConfig>},
+        TContext
+      > => {
+      return useMutation(getTestWebhookMutationOptions(options));
+    }
 

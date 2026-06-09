@@ -158,3 +158,34 @@ export interface WorkflowYaml {
   yaml: string;
 }
 
+export interface WebhookConfig {
+  /** Slack or Discord incoming webhook URL */
+  url: string;
+  /** Send notification when a scan completes successfully */
+  notifyOnComplete: boolean;
+  /** Send notification when a scan fails */
+  notifyOnFailure: boolean;
+}
+
+export type WebhookTestResultProvider = typeof WebhookTestResultProvider[keyof typeof WebhookTestResultProvider];
+
+
+export const WebhookTestResultProvider = {
+  slack: 'slack',
+  discord: 'discord',
+  generic: 'generic',
+} as const;
+
+export interface WebhookTestResult {
+  ok: boolean;
+  provider: WebhookTestResultProvider;
+  /** @nullable */
+  statusCode?: number | null;
+  /** @nullable */
+  error?: string | null;
+}
+
+export type DeleteWebhookConfig200 = {
+  ok: boolean;
+};
+

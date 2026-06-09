@@ -37,6 +37,12 @@ export const mismatchesTable = pgTable("mismatches", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const settingsTable = pgTable("settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const insertScanSchema = createInsertSchema(scansTable).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertScanLogSchema = createInsertSchema(scanLogsTable).omit({ id: true, createdAt: true });
 export const insertMismatchSchema = createInsertSchema(mismatchesTable).omit({ id: true, createdAt: true });

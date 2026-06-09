@@ -1,4 +1,4 @@
-import { Switch, Route, Router as WouterRouter, Link } from "wouter";
+import { Switch, Route, Router as WouterRouter, Link, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,7 +6,8 @@ import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import NewScan from "@/pages/new-scan";
 import ScanDetail from "@/pages/scan-detail";
-import { Ghost, Activity } from "lucide-react";
+import Settings from "@/pages/settings";
+import { Ghost, Activity, Bell } from "lucide-react";
 
 const queryClient = new QueryClient();
 
@@ -25,16 +26,35 @@ function Layout({ children }: { children: React.ReactNode }) {
             <span>SYSTEM: ONLINE</span>
           </div>
         </div>
-        <nav className="flex items-center gap-4">
-          <Link href="/scan/new" className="text-sm font-mono hover:text-primary transition-colors" data-testid="link-new-scan">
-            [NEW_SCAN]
-          </Link>
-        </nav>
+        <Nav />
       </header>
       <main className="flex-1 p-6 md:p-8 max-w-7xl mx-auto w-full">
         {children}
       </main>
     </div>
+  );
+}
+
+function Nav() {
+  const [location] = useLocation();
+  const navLink = (href: string, label: string, testId: string, icon?: React.ReactNode) => {
+    const active = location === href;
+    return (
+      <Link
+        href={href}
+        className={`text-xs font-mono flex items-center gap-1.5 transition-colors ${active ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
+        data-testid={testId}
+      >
+        {icon}
+        {label}
+      </Link>
+    );
+  };
+  return (
+    <nav className="flex items-center gap-5">
+      {navLink("/scan/new", "[NEW_SCAN]", "link-new-scan")}
+      {navLink("/settings", "[ALERTS]", "link-settings", <Bell className="w-3 h-3" />)}
+    </nav>
   );
 }
 
@@ -44,6 +64,7 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/scan/new" component={NewScan} />
       <Route path="/scan/:id" component={ScanDetail} />
+      <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -5,6 +5,8 @@ import { eq, desc, count, and, sql } from "drizzle-orm";
 import { z } from "zod";
 import { agentThink, agentExecute, agentSelfCorrect } from "../lib/agents.js";
 import { logger } from "../lib/logger.js";
+import { sendScanWebhook } from "../lib/webhook.js";
+import { getWebhookConfig } from "./settings.js";
 
 const router = Router();
 
@@ -182,15 +184,24 @@ async function runPipeline(scanId: number, repoUrl: string, sandboxRepo: string 
         : "Scan complete. No behavioral mismatches detected.",
     });
 
+    // Fire webhook notification (non-blocking)
+    getWebhookConfig().then((cfg) => {
+      if (cfg?.url) {
+        sendScanWebhook(cfg, { scanId, repoUrl, status: "completed", mismatchCount, prUrl });
+      }
+    }).catch((err) => logger.warn({ err }, "Webhook notify failed (completed)"));
+
   } catch (err) {
     logger.error({ err, scanId }, "Pipeline error");
     const { db: dbErr } = await import("@workspace/db");
     const { scansTable: stErr, scanLogsTable: sltErr } = await import("@workspace/db");
     const { eq: eqErr } = await import("drizzle-orm");
 
+    const errorMessage = err instanceof Error ? err.message : String(err);
+
     await dbErr.update(stErr).set({
       status: "failed",
-      errorMessage: err instanceof Error ? err.message : String(err),
+      errorMessage,
       updatedAt: new Date(),
     }).where(eqErr(stErr.id, scanId));
 
@@ -198,8 +209,15 @@ async function runPipeline(scanId: number, repoUrl: string, sandboxRepo: string 
       scanId,
       agent: "SYSTEM",
       level: "error",
-      message: `Pipeline failed: ${err instanceof Error ? err.message : String(err)}`,
+      message: `Pipeline failed: ${errorMessage}`,
     });
+
+    // Fire webhook notification (non-blocking)
+    getWebhookConfig().then((cfg) => {
+      if (cfg?.url) {
+        sendScanWebhook(cfg, { scanId, repoUrl, status: "failed", mismatchCount: 0, errorMessage });
+      }
+    }).catch((wErr) => logger.warn({ wErr }, "Webhook notify failed (failed)"));
   }
 }
 

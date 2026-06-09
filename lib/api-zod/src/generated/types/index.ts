@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './deleteWebhookConfig200';
 export * from './errorResponse';
 export * from './healthStatus';
 export * from './mismatch';
@@ -20,4 +21,7 @@ export * from './scanLogAgent';
 export * from './scanLogLevel';
 export * from './scanStats';
 export * from './scanStatus';
+export * from './webhookConfig';
+export * from './webhookTestResult';
+export * from './webhookTestResultProvider';
 export * from './workflowYaml';

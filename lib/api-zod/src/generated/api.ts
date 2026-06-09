@@ -171,3 +171,54 @@ export const GetWorkflowYamlResponse = zod.object({
 })
 
 
+/**
+ * @summary Get the current webhook notification configuration
+ */
+export const GetWebhookConfigResponse = zod.object({
+  "url": zod.string().describe('Slack or Discord incoming webhook URL'),
+  "notifyOnComplete": zod.boolean().describe('Send notification when a scan completes successfully'),
+  "notifyOnFailure": zod.boolean().describe('Send notification when a scan fails')
+})
+
+
+/**
+ * @summary Save webhook notification configuration
+ */
+export const SaveWebhookConfigBody = zod.object({
+  "url": zod.string().describe('Slack or Discord incoming webhook URL'),
+  "notifyOnComplete": zod.boolean().describe('Send notification when a scan completes successfully'),
+  "notifyOnFailure": zod.boolean().describe('Send notification when a scan fails')
+})
+
+export const SaveWebhookConfigResponse = zod.object({
+  "url": zod.string().describe('Slack or Discord incoming webhook URL'),
+  "notifyOnComplete": zod.boolean().describe('Send notification when a scan completes successfully'),
+  "notifyOnFailure": zod.boolean().describe('Send notification when a scan fails')
+})
+
+
+/**
+ * @summary Remove webhook configuration
+ */
+export const DeleteWebhookConfigResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary Send a test notification to the configured webhook
+ */
+export const TestWebhookBody = zod.object({
+  "url": zod.string().describe('Slack or Discord incoming webhook URL'),
+  "notifyOnComplete": zod.boolean().describe('Send notification when a scan completes successfully'),
+  "notifyOnFailure": zod.boolean().describe('Send notification when a scan fails')
+})
+
+export const TestWebhookResponse = zod.object({
+  "ok": zod.boolean(),
+  "provider": zod.enum(['slack', 'discord', 'generic']),
+  "statusCode": zod.number().nullish(),
+  "error": zod.string().nullish()
+})
+
+

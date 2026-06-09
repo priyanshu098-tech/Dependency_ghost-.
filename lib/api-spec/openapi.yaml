@@ -13,6 +13,8 @@ tags:
     description: Dependency scan operations
   - name: sandbox
     description: GitHub sandbox setup
+  - name: settings
+    description: App settings and notifications
 paths:
   /healthz:
     get:
@@ -208,6 +210,82 @@ paths:
               schema:
                 $ref: "#/components/schemas/WorkflowYaml"
 
+  /settings/webhooks:
+    get:
+      operationId: getWebhookConfig
+      tags: [settings]
+      summary: Get the current webhook notification configuration
+      responses:
+        "200":
+          description: Webhook config
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookConfig"
+    put:
+      operationId: saveWebhookConfig
+      tags: [settings]
+      summary: Save webhook notification configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookConfig"
+      responses:
+        "200":
+          description: Saved config
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookConfig"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteWebhookConfig
+      tags: [settings]
+      summary: Remove webhook configuration
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                required: [ok]
+
+  /settings/webhooks/test:
+    post:
+      operationId: testWebhook
+      tags: [settings]
+      summary: Send a test notification to the configured webhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookConfig"
+      responses:
+        "200":
+          description: Test result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookTestResult"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -386,3 +464,36 @@ components:
       properties:
         yaml:
           type: string
+
+    WebhookConfig:
+      type: object
+      required:
+        - url
+        - notifyOnComplete
+        - notifyOnFailure
+      properties:
+        url:
+          type: string
+          description: Slack or Discord incoming webhook URL
+        notifyOnComplete:
+          type: boolean
+          description: Send notification when a scan completes successfully
+        notifyOnFailure:
+          type: boolean
+          description: Send notification when a scan fails
+
+    WebhookTestResult:
+      type: object
+      required:
+        - ok
+        - provider
+      properties:
+        ok:
+          type: boolean
+        provider:
+          type: string
+          enum: [slack, discord, generic]
+        statusCode:
+          type: ["integer", "null"]
+        error:
+          type: ["string", "null"]

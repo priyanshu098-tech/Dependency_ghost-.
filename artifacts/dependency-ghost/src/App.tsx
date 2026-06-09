@@ -11,6 +11,29 @@ import { Ghost, Activity, Bell } from "lucide-react";
 
 const queryClient = new QueryClient();
 
+function Nav() {
+  const [location] = useLocation();
+  const navLink = (href: string, label: string, testId: string, icon?: React.ReactNode) => {
+    const active = location === href;
+    return (
+      <Link
+        href={href}
+        className={`text-xs font-mono flex items-center gap-1.5 transition-colors ${active ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
+        data-testid={testId}
+      >
+        {icon}
+        {label}
+      </Link>
+    );
+  };
+  return (
+    <nav className="flex items-center gap-5">
+      {navLink("/scan/new", "[NEW_SCAN]", "link-new-scan")}
+      {navLink("/settings", "[ALERTS]", "link-settings", <Bell className="w-3 h-3" />)}
+    </nav>
+  );
+}
+
 function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen w-full flex flex-col bg-background text-foreground dark selection:bg-primary selection:text-primary-foreground">
@@ -32,29 +55,6 @@ function Layout({ children }: { children: React.ReactNode }) {
         {children}
       </main>
     </div>
-  );
-}
-
-function Nav() {
-  const [location] = useLocation();
-  const navLink = (href: string, label: string, testId: string, icon?: React.ReactNode) => {
-    const active = location === href;
-    return (
-      <Link
-        href={href}
-        className={`text-xs font-mono flex items-center gap-1.5 transition-colors ${active ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
-        data-testid={testId}
-      >
-        {icon}
-        {label}
-      </Link>
-    );
-  };
-  return (
-    <nav className="flex items-center gap-5">
-      {navLink("/scan/new", "[NEW_SCAN]", "link-new-scan")}
-      {navLink("/settings", "[ALERTS]", "link-settings", <Bell className="w-3 h-3" />)}
-    </nav>
   );
 }
 

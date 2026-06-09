@@ -85,6 +85,10 @@ export default function ScanDetail() {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [logs?.length]);
 
+  // Export state — must be declared before any early returns (Rules of Hooks)
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportedFmt, setExportedFmt] = useState<ExportFormat | null>(null);
+
   if (!scan) {
     return (
       <div className="flex items-center gap-3 font-mono text-primary animate-pulse py-8">
@@ -96,9 +100,6 @@ export default function ScanDetail() {
 
   const isRunning = !isTerminal(scan.status);
   const statusStyle = STATUS_STYLES[scan.status] ?? "border-zinc-500 text-zinc-400";
-
-  const [exportOpen, setExportOpen] = useState(false);
-  const [exportedFmt, setExportedFmt] = useState<ExportFormat | null>(null);
 
   const handleExport = (fmt: ExportFormat) => {
     exportScanReport(fmt, scan, logs ?? [], sortedMismatches);

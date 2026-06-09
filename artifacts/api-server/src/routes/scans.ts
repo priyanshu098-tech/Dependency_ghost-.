@@ -7,6 +7,7 @@ import { agentThink, agentExecute, agentSelfCorrect } from "../lib/agents.js";
 import { logger } from "../lib/logger.js";
 import { sendScanWebhook } from "../lib/webhook.js";
 import { getWebhookConfig } from "./settings.js";
+import { GeminiOverloadError } from "../lib/gemini.js";
 
 const router = Router();
 
@@ -192,7 +193,13 @@ async function runPipeline(scanId: number, repoUrl: string, sandboxRepo: string 
     }).catch((err) => logger.warn({ err }, "Webhook notify failed (completed)"));
 
   } catch (err) {
-    logger.error({ err, scanId }, "Pipeline error");
+    const isOverload = err instanceof GeminiOverloadError;
+    if (isOverload) {
+      logger.warn({ scanId }, "Gemini overload — all retries exhausted");
+    } else {
+      logger.error({ err, scanId }, "Pipeline error");
+    }
+
     const { db: dbErr } = await import("@workspace/db");
     const { scansTable: stErr, scanLogsTable: sltErr } = await import("@workspace/db");
     const { eq: eqErr } = await import("drizzle-orm");
@@ -208,8 +215,10 @@ async function runPipeline(scanId: number, repoUrl: string, sandboxRepo: string 
     await dbErr.insert(sltErr).values({
       scanId,
       agent: "SYSTEM",
-      level: "error",
-      message: `Pipeline failed: ${errorMessage}`,
+      level: isOverload ? "warning" : "error",
+      message: isOverload
+        ? errorMessage   // already the friendly "Temporary API overload…" message
+        : `Pipeline failed: ${errorMessage}`,
     });
 
     // Fire webhook notification (non-blocking)

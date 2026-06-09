@@ -2,17 +2,16 @@ import { db } from "@workspace/db";
 import { mismatchesTable, scanLogsTable } from "@workspace/db";
 import { generateContent } from "../lib/gemini.js";
 
+async function logToScan(scanId: number, agent: string, level: string, message: string) {
+  await db.insert(scanLogsTable).values({ scanId, agent, level, message });
+}
+
 export async function simulateExecutionFallback(
   scanId: number,
   repoUrl: string,
   contractMap: Record<string, unknown>
 ): Promise<number> {
-  await db.insert(scanLogsTable).values({
-    scanId,
-    agent: "EXECUTE",
-    level: "info",
-    message: "No sandbox repo configured — running Gemini-based behavior simulation",
-  });
+  await logToScan(scanId, "EXECUTE", "info", "No sandbox repo configured — running Gemini-based behavior simulation");
 
   const deps = (contractMap.dependencies as Record<string, unknown>) ?? {};
   const depList = Object.entries(deps).slice(0, 10).map(([name, data]) => {
@@ -40,7 +39,14 @@ Respond with a JSON array. Each item should have:
 
 Be realistic — only report genuine known breaking changes. Return an empty array [] if no mismatches are found. Return ONLY the JSON array, no markdown.`;
 
-  const raw = await generateContent(prompt);
+  const onRetry = async (attempt: number, total: number, delayMs: number) => {
+    const secs = Math.round(delayMs / 1000);
+    await logToScan(scanId, "EXECUTE", "warning",
+      `Gemini is busy, retrying… (attempt ${attempt + 1}/${total}, waiting ${secs}s)`
+    );
+  };
+
+  const raw = await generateContent(prompt, { onRetry });
   const jsonMatch = raw.match(/\[[\s\S]*\]/);
 
   let mismatches: Array<Record<string, string>> = [];
@@ -64,19 +70,11 @@ Be realistic — only report genuine known breaking changes. Return an empty arr
   }
 
   if (mismatches.length > 0) {
-    await db.insert(scanLogsTable).values({
-      scanId,
-      agent: "EXECUTE",
-      level: "warning",
-      message: `Simulation found ${mismatches.length} potential behavior mismatch(es)`,
-    });
+    await logToScan(scanId, "EXECUTE", "warning",
+      `Simulation found ${mismatches.length} potential behavior mismatch(es)`
+    );
   } else {
-    await db.insert(scanLogsTable).values({
-      scanId,
-      agent: "EXECUTE",
-      level: "success",
-      message: "Simulation found no behavior mismatches",
-    });
+    await logToScan(scanId, "EXECUTE", "success", "Simulation found no behavior mismatches");
   }
 
   return mismatches.length;

@@ -1,7 +1,7 @@
 import { db } from "@workspace/db";
 import { scansTable, scanLogsTable, mismatchesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { generateContent } from "./gemini.js";
+import { generateContent, GeminiOverloadError } from "./gemini.js";
 import {
   fetchRaw,
   parseRepoUrl,
@@ -20,6 +20,19 @@ const WORKFLOW_ID = "dependency-ghost-test.yml";
 async function log(scanId: number, agent: string, level: string, message: string) {
   await db.insert(scanLogsTable).values({ scanId, agent, level, message });
   logger.info({ scanId, agent, level }, message);
+}
+
+/** Returns an onRetry callback that writes "Gemini is busy" messages to the live scan log. */
+function makeOnRetry(scanId: number, agent: string) {
+  return async (attempt: number, total: number, delayMs: number) => {
+    const secs = Math.round(delayMs / 1000);
+    await log(
+      scanId,
+      agent,
+      "warning",
+      `Gemini is busy, retrying… (attempt ${attempt + 1}/${total}, waiting ${secs}s)`
+    );
+  };
 }
 
 async function setScanStatus(scanId: number, status: string, extra: Partial<{ errorMessage: string; contractMap: string; workflowRunId: string; prUrl: string }> = {}) {
@@ -94,7 +107,7 @@ Respond ONLY with a valid JSON object. No markdown, no explanation. Format:
 
 Only include packages that have well-known public APIs (skip devDependencies, type-only packages like @types/*, and internal utilities). Limit to at most 10 dependencies total.`;
 
-  const raw = await generateContent(prompt);
+  const raw = await generateContent(prompt, { onRetry: makeOnRetry(scanId, "THINK") });
 
   // Extract JSON from response
   const jsonMatch = raw.match(/\{[\s\S]*\}/);
@@ -338,7 +351,7 @@ Respond with a JSON array. Each item should have:
 
 Be realistic — only report genuine known breaking changes. Return an empty array [] if no mismatches are found. Return ONLY the JSON array, no markdown.`;
 
-  const raw = await generateContent(prompt);
+  const raw = await generateContent(prompt, { onRetry: makeOnRetry(scanId, "EXECUTE") });
   const jsonMatch = raw.match(/\[[\s\S]*\]/);
 
   let mismatches: Array<Record<string, string>> = [];
@@ -423,7 +436,7 @@ Write a short JavaScript/TypeScript compatibility wrapper or adapter that:
 
 Respond ONLY with the code. No markdown fences, no explanation before or after.`;
 
-    const patch = await generateContent(prompt);
+    const patch = await generateContent(prompt, { onRetry: makeOnRetry(scanId, "CORRECT") });
 
     await db.update(mismatchesTable)
       .set({ patch, patchStatus: "pending" })

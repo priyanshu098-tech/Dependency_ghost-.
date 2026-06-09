@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, Link } from "wouter";
 import {
   useGetScan, getGetScanQueryKey,
@@ -6,12 +6,12 @@ import {
   useGetScanMismatches, getGetScanMismatchesQueryKey,
   useRunScan,
 } from "@workspace/api-client-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Terminal, Activity, AlertTriangle, ExternalLink, ArrowLeft } from "lucide-react";
+import { Terminal, Activity, AlertTriangle, ExternalLink, ArrowLeft, Download, FileJson, FileText, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MismatchCard } from "@/components/diff-viewer";
+import { exportScanReport, type ExportFormat } from "@/lib/export";
 
 const AGENT_COLORS: Record<string, string> = {
   THINK:   "text-blue-400",
@@ -97,6 +97,16 @@ export default function ScanDetail() {
   const isRunning = !isTerminal(scan.status);
   const statusStyle = STATUS_STYLES[scan.status] ?? "border-zinc-500 text-zinc-400";
 
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportedFmt, setExportedFmt] = useState<ExportFormat | null>(null);
+
+  const handleExport = (fmt: ExportFormat) => {
+    exportScanReport(fmt, scan, logs ?? [], sortedMismatches);
+    setExportedFmt(fmt);
+    setExportOpen(false);
+    setTimeout(() => setExportedFmt(null), 2500);
+  };
+
   const sortedMismatches = [...(mismatches ?? [])].sort(
     (a, b) => (SEVERITY_ORDER[a.severity] ?? 9) - (SEVERITY_ORDER[b.severity] ?? 9)
   );
@@ -135,22 +145,87 @@ export default function ScanDetail() {
           </p>
         </div>
 
-        {scan.prUrl && (
-          <a
-            href={scan.prUrl}
-            target="_blank"
-            rel="noreferrer"
-            data-testid="link-pull-request"
-          >
+        <div className="flex items-center gap-2 flex-wrap">
+          {scan.prUrl && (
+            <a
+              href={scan.prUrl}
+              target="_blank"
+              rel="noreferrer"
+              data-testid="link-pull-request"
+            >
+              <Button
+                variant="outline"
+                className="border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10 font-mono text-xs gap-2"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                VIEW PULL REQUEST
+              </Button>
+            </a>
+          )}
+
+          {/* Export dropdown */}
+          <div className="relative" data-testid="export-container">
             <Button
               variant="outline"
-              className="border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10 font-mono text-xs gap-2"
+              className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-primary font-mono text-xs gap-2"
+              onClick={() => setExportOpen((v) => !v)}
+              data-testid="button-export"
+              aria-label="Export report"
             >
-              <ExternalLink className="w-3.5 h-3.5" />
-              VIEW PULL REQUEST
+              {exportedFmt ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-emerald-400">EXPORTED</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-3.5 h-3.5" />
+                  EXPORT
+                </>
+              )}
             </Button>
-          </a>
-        )}
+
+            {exportOpen && (
+              <>
+                {/* click-away backdrop */}
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setExportOpen(false)}
+                />
+                <div
+                  className="absolute right-0 top-full mt-1.5 z-20 w-48 bg-zinc-900 border border-zinc-700 rounded shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150"
+                  data-testid="export-dropdown"
+                >
+                  <div className="px-3 py-2 text-[9px] font-mono text-zinc-600 uppercase tracking-widest border-b border-zinc-800">
+                    Download report as
+                  </div>
+                  <button
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-xs font-mono text-zinc-300 hover:bg-zinc-800 hover:text-primary transition-colors"
+                    onClick={() => handleExport("markdown")}
+                    data-testid="button-export-markdown"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                    <div>
+                      <div>Markdown</div>
+                      <div className="text-[9px] text-zinc-600">scan-report.md</div>
+                    </div>
+                  </button>
+                  <button
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-xs font-mono text-zinc-300 hover:bg-zinc-800 hover:text-primary transition-colors"
+                    onClick={() => handleExport("json")}
+                    data-testid="button-export-json"
+                  >
+                    <FileJson className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <div>
+                      <div>JSON</div>
+                      <div className="text-[9px] text-zinc-600">scan-report.json</div>
+                    </div>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* ── Main layout ── */}

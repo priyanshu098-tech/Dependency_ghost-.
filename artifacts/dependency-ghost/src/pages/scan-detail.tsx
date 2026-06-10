@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams, Link } from "wouter";
+import { useParams, Link, useLocation } from "wouter";
 import {
   useGetScan, getGetScanQueryKey,
   useGetScanLogs, getGetScanLogsQueryKey,
   useGetScanMismatches, getGetScanMismatchesQueryKey,
   useRunScan,
+  useCreateScan,
 } from "@workspace/api-client-react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Terminal, Activity, AlertTriangle, ExternalLink, ArrowLeft, Download, FileJson, FileText, Check } from "lucide-react";
+import { Terminal, Activity, AlertTriangle, ExternalLink, ArrowLeft, Download, FileJson, FileText, Check, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MismatchCard } from "@/components/diff-viewer";
 import { exportScanReport, type ExportFormat } from "@/lib/export";
@@ -41,6 +42,7 @@ const SEVERITY_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2
 export default function ScanDetail() {
   const { id } = useParams();
   const scanId = parseInt(id || "0", 10);
+  const [, setLocation] = useLocation();
 
   const isTerminal = (status?: string) =>
     status === "completed" || status === "failed";
@@ -71,6 +73,8 @@ export default function ScanDetail() {
 
   const runScan = useRunScan();
   const hasRun = useRef(false);
+  const createScan = useCreateScan();
+  const [retrying, setRetrying] = useState(false);
 
   useEffect(() => {
     if (scan && scan.status === "pending" && !hasRun.current) {
@@ -100,6 +104,17 @@ export default function ScanDetail() {
 
   const isRunning = !isTerminal(scan.status);
   const statusStyle = STATUS_STYLES[scan.status] ?? "border-zinc-500 text-zinc-400";
+
+  const handleRetry = () => {
+    setRetrying(true);
+    createScan.mutate({ data: {
+      repoUrl: scan.repoUrl,
+      sandboxRepo: scan.sandboxRepo ?? null,
+    }}, {
+      onSuccess: (newScan) => setLocation(`/scan/${newScan.id}`),
+      onSettled: () => setRetrying(false),
+    });
+  };
 
   const handleExport = (fmt: ExportFormat) => {
     exportScanReport(fmt, scan, logs ?? [], sortedMismatches);
@@ -162,6 +177,20 @@ export default function ScanDetail() {
                 VIEW PULL REQUEST
               </Button>
             </a>
+          )}
+
+          {/* Retry button — only shown on failed scans */}
+          {scan.status === "failed" && (
+            <Button
+              variant="outline"
+              className="border-red-500/50 text-red-400 hover:bg-red-500/10 font-mono text-xs gap-2 disabled:opacity-50"
+              onClick={handleRetry}
+              disabled={retrying}
+              data-testid="button-retry-scan"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${retrying ? "animate-spin" : ""}`} />
+              {retrying ? "RETRYING…" : "RETRY SCAN"}
+            </Button>
           )}
 
           {/* Export dropdown */}

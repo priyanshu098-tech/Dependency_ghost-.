@@ -80,8 +80,7 @@ A fully autonomous **3‑agent loop** that:
 
 - **Event:** FAR AWAY 2026 – India's Biggest International Hackathon  
 - **Theme:** Agentic & Autonomous Systems  
-- **Team:** [Your Name] – solo, first hackathon  
-- **Round 1 submission:** GitHub repo + 15‑slide presentation (PDF)  
+- **Team:** [Horizon Seekers] – first hackathon  
 
 ---
 
@@ -110,8 +109,7 @@ Built in 48 hours, on a phone, with free AI tools.
 ## 🔗 Links
 
 - **GitHub Repository:** [github.com/priyanshu098-tech/Code-Behavior-Guard](https://github.com/priyanshu098-tech/Code-Behavior-Guard)  
-- **Demo Video / Presentation:** *(link to your YouTube unlisted video or mention that you submitted a PDF)*  
-- **Live App:** *(your Replit/Streamlit URL – if down, state “temporarily limited due to free tier”)*  
+- **Live App:** *(https://d249c1cb-9237-4bd5-89b6-62a366fb7b82-00-2w9i3iu83gufb.sisko.replit.dev/)*  
 
 ---
 

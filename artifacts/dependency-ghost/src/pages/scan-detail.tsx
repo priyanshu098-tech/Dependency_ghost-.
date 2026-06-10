@@ -9,10 +9,11 @@ import {
 } from "@workspace/api-client-react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Terminal, Activity, AlertTriangle, ExternalLink, ArrowLeft, Download, FileJson, FileText, Check, RefreshCw } from "lucide-react";
+import { Terminal, Activity, AlertTriangle, ExternalLink, ArrowLeft, Download, FileJson, FileText, Check, RefreshCw, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MismatchCard } from "@/components/diff-viewer";
 import { exportScanReport, type ExportFormat } from "@/lib/export";
+import { QrModal } from "@/components/qr-modal";
 
 const AGENT_COLORS: Record<string, string> = {
   THINK:   "text-blue-400",
@@ -75,6 +76,7 @@ export default function ScanDetail() {
   const hasRun = useRef(false);
   const createScan = useCreateScan();
   const [retrying, setRetrying] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
 
   useEffect(() => {
     if (scan && scan.status === "pending" && !hasRun.current) {
@@ -178,6 +180,17 @@ export default function ScanDetail() {
               </Button>
             </a>
           )}
+
+          {/* Share via QR */}
+          <Button
+            variant="outline"
+            className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-primary font-mono text-xs gap-2"
+            onClick={() => setQrOpen(true)}
+            data-testid="button-share-qr"
+          >
+            <QrCode className="w-3.5 h-3.5" />
+            SHARE QR
+          </Button>
 
           {/* Retry button — only shown on failed scans */}
           {scan.status === "failed" && (
@@ -364,6 +377,15 @@ export default function ScanDetail() {
           </div>
         </div>
       </div>
+
+      {/* QR code modal */}
+      {qrOpen && (
+        <QrModal
+          url={window.location.href}
+          scanId={scan.id}
+          onClose={() => setQrOpen(false)}
+        />
+      )}
     </div>
   );
 }

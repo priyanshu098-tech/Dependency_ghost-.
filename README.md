@@ -80,7 +80,8 @@ A fully autonomous **3‑agent loop** that:
 
 - **Event:** FAR AWAY 2026 – India's Biggest International Hackathon  
 - **Theme:** Agentic & Autonomous Systems  
-- **Team:** [Horizon Seekers] – first hackathon  
+- **Team:** [Horizon Seekers] – first hackathon
+- **Team Member:** Priyanshu Kumar, Krish Kumar Verma 
 
 ---
 

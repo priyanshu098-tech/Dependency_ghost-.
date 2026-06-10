@@ -39,14 +39,14 @@ function Nav() {
 function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen w-full flex flex-col bg-background text-foreground dark selection:bg-primary selection:text-primary-foreground">
-      <header className="border-b border-border bg-card p-4 flex items-center justify-between sticky top-0 z-50">
-        <div className="flex items-center gap-4">
+      <header className="border-b border-border bg-card px-4 py-3 flex items-center justify-between sticky top-0 z-50 gap-2">
+        <div className="flex items-center gap-2 min-w-0 shrink-0">
           <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity" data-testid="link-home">
-            <Ghost className="w-6 h-6 text-primary" />
-            <span className="font-bold tracking-tighter text-lg">DEPENDENCY_GHOST</span>
+            <Ghost className="w-5 h-5 text-primary shrink-0" />
+            <span className="font-bold tracking-tighter text-base hidden sm:inline">DEPENDENCY_GHOST</span>
           </Link>
-          <div className="h-4 w-px bg-border mx-2" />
-          <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
+          <div className="h-4 w-px bg-border mx-1 hidden md:block" />
+          <div className="hidden md:flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
             <Activity className="w-3 h-3 text-primary animate-pulse" />
             <span>SYSTEM: ONLINE</span>
           </div>

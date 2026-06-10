@@ -7,7 +7,8 @@ import Dashboard from "@/pages/dashboard";
 import NewScan from "@/pages/new-scan";
 import ScanDetail from "@/pages/scan-detail";
 import Settings from "@/pages/settings";
-import { Ghost, Activity, Bell } from "lucide-react";
+import LiveAgentLoop from "@/pages/live-agent-loop";
+import { Ghost, Activity, Bell, Radio } from "lucide-react";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ function Nav() {
   };
   return (
     <nav className="flex items-center gap-5">
+      {navLink("/live", "[AGENTS]", "link-live", <Radio className="w-3 h-3" />)}
       {navLink("/scan/new", "[NEW_SCAN]", "link-new-scan")}
       {navLink("/settings", "[ALERTS]", "link-settings", <Bell className="w-3 h-3" />)}
     </nav>
@@ -64,6 +66,7 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/scan/new" component={NewScan} />
       <Route path="/scan/:id" component={ScanDetail} />
+      <Route path="/live" component={LiveAgentLoop} />
       <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>

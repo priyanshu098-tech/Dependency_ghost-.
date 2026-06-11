@@ -109,7 +109,7 @@ Built in 48 hours, on a phone, with free AI tools.
 ## 🔗 Links
 
 - **GitHub Repository:** [github.com/priyanshu098-tech/Code-Behavior-Guard](https://github.com/priyanshu098-tech/Code-Behavior-Guard)  
-- **Live App:** *(https://d249c1cb-9237-4bd5-89b6-62a366fb7b82-00-2w9i3iu83gufb.sisko.replit.dev/)*  
+- **Live App:** *(https://code-behavior-guard--anshukumar2686.replit.app/)*  
 
 ---
 

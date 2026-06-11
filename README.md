@@ -46,7 +46,6 @@ A fully autonomous **3‑agent loop** that:
 |-----------|------------|
 | AI for contracts & patches | **Gemini API** (free tier) |
 | Sandbox testing | **GitHub Actions** |
-| Web UI | **Streamlit** (mobile‑friendly) |
 | Backend / agents | **TypeScript / Python** |
 | Development & hosting | **Replit + GitHub** |
 
@@ -56,7 +55,7 @@ A fully autonomous **3‑agent loop** that:
 
 ## 🚀 How to Use (for judges)
 
-1. **Open the live app** (if still running): [Your Replit/Streamlit URL – if down, see demo video]  
+1. **Open the live app** (if still running): [https://code-behavior-guard--anshukumar2686.replit.app/]  
 2. **Paste a GitHub repo URL** that has a `package.json` (e.g., `https://github.com/axios/axios`)  
 3. Click **INITIATE SCAN**  
 4. Watch the 3 agents run in real time (or view past scans in **RECENT SCANS**)  
